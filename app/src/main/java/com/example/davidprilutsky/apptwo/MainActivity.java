@@ -42,6 +42,7 @@ public class MainActivity extends AppCompatActivity {
 
     private Button takePictureButton;
     private Uri file;
+    private Uri cropFile;
     private String recognizedText = "";
     final int CAMERA_CAPTURE = 1;
     final int CROP_PIC = 2;
@@ -140,13 +141,10 @@ public class MainActivity extends AppCompatActivity {
         }
         // user is returning from cropping the image
         else if (requestCode == CROP_PIC) {
-            // get the returned data
-            Bundle extras = data.getExtras();
             // get the cropped bitmap
-            Bitmap thePic = extras.getParcelable("data");
             ImageView cropView = (ImageView) findViewById(R.id.cropview);
-            cropView.setImageBitmap(thePic);
-            onPhotoTaken(thePic);
+            cropView.setImageURI(cropFile);
+            onPhotoTaken();
         }
     }
 
@@ -155,13 +153,17 @@ public class MainActivity extends AppCompatActivity {
         try {
             // call the standard crop action intent (the user device may not
             // support it)
+            cropFile = Uri.fromFile(getOutputMediaFile());
             Intent cropIntent = new Intent("com.android.camera.action.CROP");
             // indicate image type and Uri
             cropIntent.setDataAndType(file, "image/*");
             // set crop properties
             cropIntent.putExtra("crop", "true");
+            // set output and format
+            cropIntent.putExtra("output", cropFile);
+            cropIntent.putExtra("outputFormat", "PNG");
             // retrieve data on return
-            cropIntent.putExtra("return-data", true);
+            //cropIntent.putExtra("return-data", true);
             // start the activity - we handle returning in onActivityResult
             startActivityForResult(cropIntent, CROP_PIC);
         }
@@ -193,15 +195,15 @@ public class MainActivity extends AppCompatActivity {
 
 
 
-    protected void onPhotoTaken(Bitmap bitmap) {
+    protected void onPhotoTaken() {
 
-        //BitmapFactory.Options options = new BitmapFactory.Options();
-        //options.inSampleSize = 4;
+        BitmapFactory.Options options = new BitmapFactory.Options();
+        options.inSampleSize = 4;
 
-        //Bitmap bitmap = BitmapFactory.decodeFile(file.getPath(), options);
+        Bitmap bitmap = BitmapFactory.decodeFile(cropFile.getPath(), options);
 
         try {
-            ExifInterface exif = new ExifInterface(file.getPath());
+            ExifInterface exif = new ExifInterface(cropFile.getPath());
             int exifOrientation = exif.getAttributeInt(
                     ExifInterface.TAG_ORIENTATION,
                     ExifInterface.ORIENTATION_NORMAL);
@@ -245,9 +247,9 @@ public class MainActivity extends AppCompatActivity {
             Log.e(TAG, "Couldn't correct orientation: " + e.toString());
         }
 
-        // _image.setImageBitmap( bitmap );
+        //_image.setImageBitmap( bitmap );
         ImageView imageView = (ImageView) findViewById(R.id.imageview);
-        imageView.setImageURI(file);
+        imageView.setImageBitmap(bitmap);
 
         Log.v(TAG, "Before baseApi");
 
@@ -266,8 +268,14 @@ public class MainActivity extends AppCompatActivity {
         Intent intent = new Intent(this, DisplayMessageActivity.class);
         //EditText editText = (EditText) findViewById(R.id.editText);
         //String message = editText.getText().toString();
+
+        //Delete pics
+        new File(file.getPath()).delete();
+        new File(cropFile.getPath()).delete();
+        //getContentResolver().delete(file, null, null);
+
         Log.v(TAG, "\n\n\n\n\n\n\n\n 2222222!!!!!!!" + recognizedText + "\n\n\n\n\n 33333333");
-        intent.putExtra(EXTRA_MESSAGE, "Some text  " + recognizedText + " the end");
+        intent.putExtra(EXTRA_MESSAGE, recognizedText);
         startActivity(intent);
     }
 }
