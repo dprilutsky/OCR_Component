@@ -1,6 +1,7 @@
 package com.example.davidprilutsky.apptwo;
 
 import android.Manifest;
+import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.AssetManager;
@@ -21,6 +22,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.Toast;
 
 import com.googlecode.tesseract.android.TessBaseAPI;
 
@@ -39,9 +41,10 @@ public class MainActivity extends AppCompatActivity {
     public static final String EXTRA_MESSAGE = "com.example.myfirstapp.MESSAGE";
 
     private Button takePictureButton;
-    private ImageView imageView;
     private Uri file;
     private String recognizedText = "";
+    final int CAMERA_CAPTURE = 1;
+    final int CROP_PIC = 2;
 
     public static final String DATA_PATH = Environment
             .getExternalStorageDirectory().toString() + "/SimpleAndroidOCR/";
@@ -124,15 +127,49 @@ public class MainActivity extends AppCompatActivity {
         file = Uri.fromFile(getOutputMediaFile());
         intent.putExtra(MediaStore.EXTRA_OUTPUT, file);
 
-        startActivityForResult(intent, 100);
+        startActivityForResult(intent, CAMERA_CAPTURE);
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == 100) {
+        if (requestCode == CAMERA_CAPTURE) {
             if (resultCode == RESULT_OK) {
-                onPhotoTaken();
+                performCrop();
+                //onPhotoTaken();
             }
+        }
+        // user is returning from cropping the image
+        else if (requestCode == CROP_PIC) {
+            // get the returned data
+            Bundle extras = data.getExtras();
+            // get the cropped bitmap
+            Bitmap thePic = extras.getParcelable("data");
+            ImageView cropView = (ImageView) findViewById(R.id.cropview);
+            cropView.setImageBitmap(thePic);
+            onPhotoTaken(thePic);
+        }
+    }
+
+    private void performCrop() {
+        // take care of exceptions
+        try {
+            // call the standard crop action intent (the user device may not
+            // support it)
+            Intent cropIntent = new Intent("com.android.camera.action.CROP");
+            // indicate image type and Uri
+            cropIntent.setDataAndType(file, "image/*");
+            // set crop properties
+            cropIntent.putExtra("crop", "true");
+            // retrieve data on return
+            cropIntent.putExtra("return-data", true);
+            // start the activity - we handle returning in onActivityResult
+            startActivityForResult(cropIntent, CROP_PIC);
+        }
+        // respond to users whose devices do not support the crop action
+        catch (ActivityNotFoundException anfe) {
+            Toast toast = Toast
+                    .makeText(this, "This device doesn't support the crop action!", Toast.LENGTH_SHORT);
+            toast.show();
         }
     }
 
@@ -156,12 +193,12 @@ public class MainActivity extends AppCompatActivity {
 
 
 
-    protected void onPhotoTaken() {
+    protected void onPhotoTaken(Bitmap bitmap) {
 
-        BitmapFactory.Options options = new BitmapFactory.Options();
-        options.inSampleSize = 4;
+        //BitmapFactory.Options options = new BitmapFactory.Options();
+        //options.inSampleSize = 4;
 
-        Bitmap bitmap = BitmapFactory.decodeFile(file.getPath(), options);
+        //Bitmap bitmap = BitmapFactory.decodeFile(file.getPath(), options);
 
         try {
             ExifInterface exif = new ExifInterface(file.getPath());
@@ -209,8 +246,8 @@ public class MainActivity extends AppCompatActivity {
         }
 
         // _image.setImageBitmap( bitmap );
-        imageView = (ImageView) findViewById(R.id.imageview);
-        imageView.setImageBitmap(bitmap);
+        ImageView imageView = (ImageView) findViewById(R.id.imageview);
+        imageView.setImageURI(file);
 
         Log.v(TAG, "Before baseApi");
 
@@ -219,7 +256,7 @@ public class MainActivity extends AppCompatActivity {
         baseApi.init(DATA_PATH, lang);
         baseApi.setImage(bitmap);
 
-        String recognizedText = baseApi.getUTF8Text();
+        recognizedText = baseApi.getUTF8Text();
         baseApi.end();
         Log.v(TAG, "\n\n\n\n\n\n\n\n AHHHHHHH!!!!!!!" + recognizedText + "\n\n\n\n\n OOOOOH");
     }
@@ -229,7 +266,8 @@ public class MainActivity extends AppCompatActivity {
         Intent intent = new Intent(this, DisplayMessageActivity.class);
         //EditText editText = (EditText) findViewById(R.id.editText);
         //String message = editText.getText().toString();
-        intent.putExtra(EXTRA_MESSAGE, recognizedText);
+        Log.v(TAG, "\n\n\n\n\n\n\n\n 2222222!!!!!!!" + recognizedText + "\n\n\n\n\n 33333333");
+        intent.putExtra(EXTRA_MESSAGE, "Some text  " + recognizedText + " the end");
         startActivity(intent);
     }
 }

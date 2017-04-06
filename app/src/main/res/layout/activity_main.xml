@@ -48,16 +48,26 @@
 
     <ImageView
         android:id="@+id/imageview"
-        android:layout_width="266dp"
-        android:layout_height="180dp"
+        android:layout_width="223dp"
+        android:layout_height="164dp"
         android:layout_centerHorizontal="true"
         android:visibility="visible"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintHorizontal_bias="0.509"
-        android:layout_marginBottom="57dp"
-        tools:layout_editor_absoluteY="274dp"
-        tools:layout_editor_absoluteX="69dp" />
+        android:layout_marginBottom="4dp"
+        app:layout_constraintHorizontal_bias="0.503" />
+
+    <ImageView
+        android:id="@+id/cropview"
+        android:layout_width="223dp"
+        android:layout_height="136dp"
+        android:layout_centerHorizontal="true"
+        android:visibility="visible"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        android:layout_marginBottom="188dp"
+        app:layout_constraintHorizontal_bias="0.503" />
 
 </android.support.constraint.ConstraintLayout>
