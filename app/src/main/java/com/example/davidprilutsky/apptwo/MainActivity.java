@@ -255,6 +255,10 @@ public class MainActivity extends AppCompatActivity {
 
         TessBaseAPI baseApi = new TessBaseAPI();
         baseApi.setDebug(true);
+        if (!baseApi.setVariable("tessedit_write_images", "T"))
+            Log.v(TAG, "COULDN'T SET SETTING!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!11");
+        else
+            Log.v(TAG, "I DID SET THE SETTING!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!11");
         baseApi.init(DATA_PATH, lang);
         baseApi.setImage(bitmap);
 

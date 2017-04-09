@@ -1,0 +1,4 @@
+-Dissable dictionaries Tesseract uses
+	-set load_system_dawg and load_freq_dawg to false
+-Whitelist only certain characters (numbers and letters)
+	-tessedit_char_whitelist 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ#()/*@%-.
