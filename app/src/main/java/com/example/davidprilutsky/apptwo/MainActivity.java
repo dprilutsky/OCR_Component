@@ -125,7 +125,10 @@ public class MainActivity extends AppCompatActivity {
 
     public void takePicture(View view) {
         Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-        file = Uri.fromFile(getOutputMediaFile());
+        //file = Uri.fromFile(getOutputMediaFile());
+        file = FileProvider.getUriForFile(MainActivity.this,
+                BuildConfig.APPLICATION_ID + ".provider",
+                getOutputMediaFile());
         intent.putExtra(MediaStore.EXTRA_OUTPUT, file);
 
         startActivityForResult(intent, CAMERA_CAPTURE);
@@ -153,7 +156,9 @@ public class MainActivity extends AppCompatActivity {
         try {
             // call the standard crop action intent (the user device may not
             // support it)
-            cropFile = Uri.fromFile(getOutputMediaFile());
+            cropFile = FileProvider.getUriForFile(MainActivity.this,
+                    BuildConfig.APPLICATION_ID + ".provider",
+                    getOutputMediaFile());
             Intent cropIntent = new Intent("com.android.camera.action.CROP");
             // indicate image type and Uri
             cropIntent.setDataAndType(file, "image/*");
@@ -260,9 +265,9 @@ public class MainActivity extends AppCompatActivity {
         else
             Log.v(TAG, "I DID SET THE SETTING!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!11");
         baseApi.init(DATA_PATH, lang);
-        baseApi.setImage(bitmap);
+        //baseApi.setImage(bitmap);
 
-        recognizedText = baseApi.getUTF8Text();
+        //recognizedText = baseApi.getUTF8Text();
         baseApi.end();
         Log.v(TAG, "\n\n\n\n\n\n\n\n AHHHHHHH!!!!!!!" + recognizedText + "\n\n\n\n\n OOOOOH");
     }
