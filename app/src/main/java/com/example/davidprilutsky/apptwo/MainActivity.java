@@ -28,6 +28,8 @@ import com.googlecode.tesseract.android.TessBaseAPI;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -44,8 +46,11 @@ public class MainActivity extends AppCompatActivity {
     private Uri file;
     private Uri cropFile;
     private String recognizedText = "";
-    final int CAMERA_CAPTURE = 1;
+    final int REQUEST_TAKE_PHOTO = 1;
     final int CROP_PIC = 2;
+    private static String mCurrentPhotoPath;
+    private static File photoFile;
+    private static Uri photoURI;
 
     public static final String DATA_PATH = Environment
             .getExternalStorageDirectory().toString() + "/SimpleAndroidOCR/";
@@ -124,53 +129,123 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void takePicture(View view) {
-        Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-        //file = Uri.fromFile(getOutputMediaFile());
-        file = FileProvider.getUriForFile(MainActivity.this,
-                BuildConfig.APPLICATION_ID + ".provider",
-                getOutputMediaFile());
-        intent.putExtra(MediaStore.EXTRA_OUTPUT, file);
+        Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
 
-        startActivityForResult(intent, CAMERA_CAPTURE);
+        // Ensure that there's a camera activity to handle the intent
+        if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
+            // Create the File where the photo should go
+            photoFile = null;
+            try {
+                photoFile = createImageFile();
+            } catch (IOException ex) {
+                // Error occurred while creating the File
+                return;
+            }
+            // Continue only if the File was successfully created
+            if (photoFile != null) {
+                photoURI = FileProvider.getUriForFile(MainActivity.this,
+                        BuildConfig.APPLICATION_ID + ".provider",
+                        photoFile);
+                takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
+                startActivityForResult(takePictureIntent, REQUEST_TAKE_PHOTO);
+            }
+        }
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == CAMERA_CAPTURE) {
-            if (resultCode == RESULT_OK) {
-                performCrop();
-                //onPhotoTaken();
+        Log.v(TAG, "in result handler");
+        if (requestCode == REQUEST_TAKE_PHOTO && resultCode == RESULT_OK) {
+            Log.v(TAG, "getting photo");
+            Uri imageUri = Uri.parse(mCurrentPhotoPath);
+            File mFile = new File(imageUri.getPath());
+
+            try {
+                InputStream ims = new FileInputStream(mFile);
+                ImageView rawView = (ImageView) findViewById(R.id.imageview);
+                rawView.setImageBitmap(BitmapFactory.decodeStream(ims));
+            } catch (FileNotFoundException e) {
+                return;
             }
+            Log.v(TAG, "entering crop");
+            performCrop(mFile);
         }
         // user is returning from cropping the image
         else if (requestCode == CROP_PIC) {
             // get the cropped bitmap
-            ImageView cropView = (ImageView) findViewById(R.id.cropview);
-            cropView.setImageURI(cropFile);
-            onPhotoTaken();
+            System.out.println("processing crop result");
+            Uri imageUri = Uri.parse(mCurrentPhotoPath);
+            File mFile = new File(imageUri.getPath());
+
+            try {
+                InputStream ims = new FileInputStream(mFile);
+                ImageView croppedView = (ImageView) findViewById(R.id.cropview);
+                //croppedView.setImageBitmap(BitmapFactory.decodeStream(ims));
+            } catch (FileNotFoundException e) {
+                System.out.println("File not found in crop post-processing");
+                return;
+            }
+            //onPhotoTaken();
         }
     }
 
-    private void performCrop() {
+    private void performCrop(File imageFile) {
+        Log.v(TAG, "at top of crop");
         // take care of exceptions
+        //Uri oldURI = FileProvider.getUriForFile(MainActivity.this,
+          //      BuildConfig.APPLICATION_ID + ".provider",
+            //    imageFile);
+        Uri croppedUri;
+        Uri photoURI2 = FileProvider.getUriForFile(MainActivity.this,
+                BuildConfig.APPLICATION_ID + ".provider",
+                photoFile);
+
+
+        try {
+            InputStream ims = new FileInputStream(photoURI.getPath());
+            ImageView croppedView = (ImageView) findViewById(R.id.cropview);
+            croppedView.setImageBitmap(BitmapFactory.decodeStream(ims));
+        } catch (FileNotFoundException e) {
+            Log.v(TAG, "didn't find file");
+            return;
+        }
+
+        Log.v(TAG, "a little bit down");
+
         try {
             // call the standard crop action intent (the user device may not
             // support it)
-            cropFile = FileProvider.getUriForFile(MainActivity.this,
-                    BuildConfig.APPLICATION_ID + ".provider",
-                    getOutputMediaFile());
-            Intent cropIntent = new Intent("com.android.camera.action.CROP");
-            // indicate image type and Uri
-            cropIntent.setDataAndType(file, "image/*");
-            // set crop properties
-            cropIntent.putExtra("crop", "true");
-            // set output and format
-            cropIntent.putExtra("output", cropFile);
-            cropIntent.putExtra("outputFormat", "PNG");
-            // retrieve data on return
-            //cropIntent.putExtra("return-data", true);
-            // start the activity - we handle returning in onActivityResult
-            startActivityForResult(cropIntent, CROP_PIC);
+            try {
+                croppedUri = FileProvider.getUriForFile(MainActivity.this,
+                        BuildConfig.APPLICATION_ID + ".provider",
+                        createImageFile());
+            } catch (IOException ex) {
+                return;
+            }
+
+            Log.v(TAG, "in crop");
+
+            try {
+                Intent cropIntent = new Intent("com.android.camera.action.CROP");
+                // indicate image type and Uri
+                cropIntent.setDataAndType(photoURI, "image/*");
+                // set crop properties
+                cropIntent.putExtra("crop", "true");
+                // set output and format
+                cropIntent.putExtra("output", croppedUri);
+                cropIntent.putExtra("outputFormat", "PNG");
+                // retrieve data on return
+                //cropIntent.putExtra("return-data", true);
+                // start the activity - we handle returning in onActivityResult
+                System.out.println("about to call crop");
+                startActivityForResult(cropIntent, CROP_PIC);
+            } catch (ActivityNotFoundException anfe) {
+                // display an error message
+                System.out.println("no crop app");
+                String errorMessage = "Whoops - your device doesn't support the crop action!";
+                Toast toast = Toast.makeText(this, errorMessage, Toast.LENGTH_SHORT);
+                toast.show();
+            }
         }
         // respond to users whose devices do not support the crop action
         catch (ActivityNotFoundException anfe) {
@@ -180,22 +255,21 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private static File getOutputMediaFile(){
-        File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(
-                Environment.DIRECTORY_PICTURES), "CameraDemo");
-
-        if (!mediaStorageDir.exists()){
-            if (!mediaStorageDir.mkdirs()){
-                Log.v(TAG, "IT'S NOT WORKING!!!  " + mediaStorageDir.getPath());
-                return null;
-            }
-        }
-
+    private static File createImageFile() throws IOException{
+        // Create an image file name
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
-        Log.v(TAG, mediaStorageDir.getPath() + File.separator +
-                "IMG_"+ timeStamp + ".jpg");
-        return new File(mediaStorageDir.getPath() + File.separator +
-               "IMG_"+ timeStamp + ".jpg");
+        String imageFileName = "JPEG_" + timeStamp + "_";
+        File storageDir = new File(Environment.getExternalStoragePublicDirectory(
+                Environment.DIRECTORY_DCIM), "Camera");
+        File image = File.createTempFile(
+                imageFileName,  /* prefix */
+                ".jpg",         /* suffix */
+                storageDir      /* directory */
+        );
+
+        // Save a file: path for use with ACTION_VIEW intents
+        mCurrentPhotoPath = "file:" + image.getAbsolutePath();
+        return image;
     }
 
 
