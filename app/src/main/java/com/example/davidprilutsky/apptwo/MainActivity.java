@@ -179,15 +179,17 @@ public class MainActivity extends AppCompatActivity {
             Uri imageUri = Uri.parse(mCurrentPhotoPath);
             File mFile = new File(imageUri.getPath());
 
-            try {
-                InputStream ims = new FileInputStream(mFile);
-                ImageView croppedView = (ImageView) findViewById(R.id.cropview);
-                croppedView.setImageBitmap(BitmapFactory.decodeStream(ims));
-            } catch (FileNotFoundException e) {
-                System.out.println("File not found in crop post-processing");
-                return;
-            }
+//            try {
+//                InputStream ims = new FileInputStream(mFile);
+//                ImageView croppedView = (ImageView) findViewById(R.id.cropview);
+//                croppedView.setImageBitmap(BitmapFactory.decodeStream(ims));
+//            } catch (FileNotFoundException e) {
+//                System.out.println("File not found in crop post-processing");
+//                return;
+//            }
             //onPhotoTaken();
+            ImageView croppedView = (ImageView) findViewById(R.id.cropview);
+            croppedView.setImageURI(photoURI);
         }
     }
 
