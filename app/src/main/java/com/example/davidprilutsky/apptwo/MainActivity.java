@@ -4,6 +4,7 @@ import android.Manifest;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.content.res.AssetManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -37,6 +38,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -51,6 +53,7 @@ public class MainActivity extends AppCompatActivity {
     private static String mCurrentPhotoPath;
     private static File photoFile;
     private static File cropFile;
+    private static Uri croppedUri;
     private Uri photoURI;
 
     public static final String DATA_PATH = Environment
@@ -171,7 +174,7 @@ public class MainActivity extends AppCompatActivity {
                 return;
             }
             Log.v(TAG, "entering crop");
-            onPhotoTaken();
+            performCrop(mFile);
         }
         // user is returning from cropping the image
         else if (requestCode == CROP_PIC) {
@@ -188,9 +191,9 @@ public class MainActivity extends AppCompatActivity {
 //                System.out.println("File not found in crop post-processing");
 //                return;
 //            }
-            //onPhotoTaken();
             ImageView croppedView = (ImageView) findViewById(R.id.cropview);
-            croppedView.setImageURI(photoURI);
+            croppedView.setImageURI(croppedUri);
+            onPhotoTaken();
         }
     }
 
@@ -205,7 +208,7 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        Uri croppedUri = FileProvider.getUriForFile(MainActivity.this,
+        croppedUri = FileProvider.getUriForFile(MainActivity.this,
                 BuildConfig.APPLICATION_ID + ".provider", cropFile);
 
         Log.v(TAG, photoURI.getPath());
@@ -225,10 +228,18 @@ public class MainActivity extends AppCompatActivity {
                 cropIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
                 //cropIntent.putExtra(MediaStore.EXTRA_OUTPUT, croppedUri);
                 cropIntent.putExtra("crop", "true");
-                cropIntent.putExtra("output", photoURI);
+                cropIntent.putExtra("output", croppedUri);
                 cropIntent.putExtra("outputFormat", "PNG");
                 //cropIntent.putExtra("return-data", true);
                 System.out.println("about to call crop");
+
+
+                List<ResolveInfo> resInfoList = MainActivity.this.getPackageManager().queryIntentActivities(cropIntent, PackageManager.MATCH_DEFAULT_ONLY);
+                for (ResolveInfo resolveInfo : resInfoList) {
+                    String packageName = resolveInfo.activityInfo.packageName;
+                    MainActivity.this.grantUriPermission(packageName, croppedUri, Intent.FLAG_GRANT_WRITE_URI_PERMISSION | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                }
+
 
                 cropIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
                 cropIntent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
@@ -274,14 +285,14 @@ public class MainActivity extends AppCompatActivity {
         options.inSampleSize = 4;
 
         //Bitmap bitmap = BitmapFactory.decodeFile(cropFile.getPath(), options);
-        Bitmap bitmap = BitmapFactory.decodeFile(photoFile.getPath(), options);
+        Bitmap bitmap = BitmapFactory.decodeFile(cropFile.getPath(), options);
         if (bitmap == null) {
             Log.v(TAG, "BITMAP IS NULL!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! BAD BAD BAD");
             return;
         }
         try {
             //ExifInterface exif = new ExifInterface(cropFile.getPath());
-            ExifInterface exif = new ExifInterface(photoFile.getPath());
+            ExifInterface exif = new ExifInterface(cropFile.getPath());
             int exifOrientation = exif.getAttributeInt(
                     ExifInterface.TAG_ORIENTATION,
                     ExifInterface.ORIENTATION_NORMAL);
