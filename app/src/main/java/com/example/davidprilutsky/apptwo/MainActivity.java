@@ -17,6 +17,7 @@ import android.support.v4.content.ContextCompat;
 import android.support.v4.content.FileProvider;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.text.method.HideReturnsTransformationMethod;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -170,7 +171,7 @@ public class MainActivity extends AppCompatActivity {
                 return;
             }
             Log.v(TAG, "entering crop");
-            performCrop(mFile);
+            onPhotoTaken();
         }
         // user is returning from cropping the image
         else if (requestCode == CROP_PIC) {
@@ -272,10 +273,15 @@ public class MainActivity extends AppCompatActivity {
         BitmapFactory.Options options = new BitmapFactory.Options();
         options.inSampleSize = 4;
 
-        Bitmap bitmap = BitmapFactory.decodeFile(cropFile.getPath(), options);
-
+        //Bitmap bitmap = BitmapFactory.decodeFile(cropFile.getPath(), options);
+        Bitmap bitmap = BitmapFactory.decodeFile(photoFile.getPath(), options);
+        if (bitmap == null) {
+            Log.v(TAG, "BITMAP IS NULL!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! BAD BAD BAD");
+            return;
+        }
         try {
-            ExifInterface exif = new ExifInterface(cropFile.getPath());
+            //ExifInterface exif = new ExifInterface(cropFile.getPath());
+            ExifInterface exif = new ExifInterface(photoFile.getPath());
             int exifOrientation = exif.getAttributeInt(
                     ExifInterface.TAG_ORIENTATION,
                     ExifInterface.ORIENTATION_NORMAL);
@@ -332,9 +338,8 @@ public class MainActivity extends AppCompatActivity {
         else
             Log.v(TAG, "I DID SET THE SETTING!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!11");
         baseApi.init(DATA_PATH, lang);
-        //baseApi.setImage(bitmap);
-
-        //recognizedText = baseApi.getUTF8Text();
+        baseApi.setImage(bitmap);
+        recognizedText = baseApi.getUTF8Text();
         baseApi.end();
         Log.v(TAG, "\n\n\n\n\n\n\n\n AHHHHHHH!!!!!!!" + recognizedText + "\n\n\n\n\n OOOOOH");
     }
@@ -346,8 +351,8 @@ public class MainActivity extends AppCompatActivity {
         //String message = editText.getText().toString();
 
         //Delete pics
-        new File(file.getPath()).delete();
-        new File(cropFile.getPath()).delete();
+        //new File(file.getPath()).delete();
+        //new File(cropFile.getPath()).delete();
         //getContentResolver().delete(file, null, null);
 
         Log.v(TAG, "\n\n\n\n\n\n\n\n 2222222!!!!!!!" + recognizedText + "\n\n\n\n\n 33333333");
