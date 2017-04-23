@@ -18,20 +18,15 @@ import android.support.v4.content.ContextCompat;
 import android.support.v4.content.FileProvider;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.text.method.HideReturnsTransformationMethod;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
-import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.Toast;
 
 import com.googlecode.tesseract.android.TessBaseAPI;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -143,6 +138,8 @@ public class MainActivity extends AppCompatActivity {
                 photoFile = createImageFile();
             } catch (IOException ex) {
                 // Error occurred while creating the File
+                System.out.println(ex);
+                Log.v(TAG, "Could not create first file for camera");
                 return;
             }
             // Continue only if the File was successfully created
@@ -150,8 +147,6 @@ public class MainActivity extends AppCompatActivity {
                 photoURI = FileProvider.getUriForFile(MainActivity.this,
                         BuildConfig.APPLICATION_ID + ".provider",
                         photoFile);
-                Log.v(TAG, "we did set photo uri");
-                Log.v(TAG, photoURI.getPath());
                 takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
                 startActivityForResult(takePictureIntent, REQUEST_TAKE_PHOTO);
             }
@@ -160,19 +155,11 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        Log.v(TAG, "in result handler");
         if (requestCode == REQUEST_TAKE_PHOTO && resultCode == RESULT_OK) {
-            Log.v(TAG, "getting photo");
             Uri imageUri = Uri.parse(mCurrentPhotoPath);
             File mFile = new File(imageUri.getPath());
-
-            try {
-                InputStream ims = new FileInputStream(mFile);
-                ImageView rawView = (ImageView) findViewById(R.id.imageview);
-                rawView.setImageBitmap(BitmapFactory.decodeStream(ims));
-            } catch (FileNotFoundException e) {
-                return;
-            }
+            ImageView rawView = (ImageView) findViewById(R.id.imageview);
+            rawView.setImageURI(imageUri);
             Log.v(TAG, "entering crop");
             performCrop(mFile);
         }
@@ -182,15 +169,6 @@ public class MainActivity extends AppCompatActivity {
             System.out.println("processing crop result");
             Uri imageUri = Uri.parse(mCurrentPhotoPath);
             File mFile = new File(imageUri.getPath());
-
-//            try {
-//                InputStream ims = new FileInputStream(mFile);
-//                ImageView croppedView = (ImageView) findViewById(R.id.cropview);
-//                croppedView.setImageBitmap(BitmapFactory.decodeStream(ims));
-//            } catch (FileNotFoundException e) {
-//                System.out.println("File not found in crop post-processing");
-//                return;
-//            }
             ImageView croppedView = (ImageView) findViewById(R.id.cropview);
             croppedView.setImageURI(croppedUri);
             onPhotoTaken();
@@ -211,9 +189,13 @@ public class MainActivity extends AppCompatActivity {
         croppedUri = FileProvider.getUriForFile(MainActivity.this,
                 BuildConfig.APPLICATION_ID + ".provider", cropFile);
 
-        Log.v(TAG, photoURI.getPath());
+        Log.v(TAG, photoURI.toString());
         Log.v(TAG, mCurrentPhotoPath);
         Log.v(TAG, photoFile.getPath());
+        Log.v(TAG, imageFile.getPath());
+        Uri tempUri = FileProvider.getUriForFile(MainActivity.this,
+                BuildConfig.APPLICATION_ID + ".provider", cropFile);
+        Log.v(TAG, tempUri.toString());
         //InputStream ims = new FileInputStream(mCurrentPhotoPath);
         ImageView croppedView = (ImageView) findViewById(R.id.cropview);
         croppedView.setImageURI(photoURI);
@@ -267,6 +249,13 @@ public class MainActivity extends AppCompatActivity {
         String imageFileName = "JPEG_" + timeStamp + "_";
         File storageDir = new File(Environment.getExternalStoragePublicDirectory(
                 Environment.DIRECTORY_DCIM), "Camera");
+        if (storageDir.exists())
+        System.out.println("the file/directory exists!");
+        else {
+            storageDir.mkdir();
+            System.out.println("don't exist!, so we created it");
+        }
+        System.out.println("This is directory: " + storageDir);
         File image = File.createTempFile(
                 imageFileName,  /* prefix */
                 ".jpg",         /* suffix */
@@ -284,14 +273,12 @@ public class MainActivity extends AppCompatActivity {
         BitmapFactory.Options options = new BitmapFactory.Options();
         options.inSampleSize = 4;
 
-        //Bitmap bitmap = BitmapFactory.decodeFile(cropFile.getPath(), options);
         Bitmap bitmap = BitmapFactory.decodeFile(cropFile.getPath(), options);
         if (bitmap == null) {
             Log.v(TAG, "BITMAP IS NULL!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! BAD BAD BAD");
             return;
         }
         try {
-            //ExifInterface exif = new ExifInterface(cropFile.getPath());
             ExifInterface exif = new ExifInterface(cropFile.getPath());
             int exifOrientation = exif.getAttributeInt(
                     ExifInterface.TAG_ORIENTATION,
